@@ -418,9 +418,10 @@ class Board:
                 found_pieces_coord.append
         return found_piece_coord
 
-    def find_attacking_pieces(self, colour):
+    def get_kingthreat_coords(self, colour):
         """
-        Find the pieces attacking the king of the colour given
+    Checks for pieces with a valid move for attacking king of the specified colour.
+    Returns a list of the coordinates of these pieces.
         """
         if self.debug:
             print("Finding attacking pieces")
@@ -450,7 +451,7 @@ class Board:
         if self.debug:
             print(f"Now checking if the {colour} king is being checked")
 
-        self.find_attacking_pieces(colour)
+        self.get_kingthreat_coords(colour)
         if self.debug:
             print("Attacking pieces:", self.attacking_pieces)
         if len(self.attacking_pieces) == 0:
@@ -592,7 +593,7 @@ class Board:
             print(f"{self.turn} King is in check")
         if self.debug:
             print(f'\nChecking before prompting the {self.turn} player')
-        self.find_attacking_pieces(self.turn)
+        self.get_kingthreat_coords(self.turn)
         # if self.checkmate(self.turn):
         #     self.winner = 'white' if self.turn == 'black' else 'black'
         if self.check(self.turn):

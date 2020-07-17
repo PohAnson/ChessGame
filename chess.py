@@ -199,6 +199,8 @@ class Board:
                 f.write(f'\n{printmove(start, end)}')
 
         while True:
+            if self.check(self.turn):
+                print(f"{self.turn} king is in check")
             inputstr = input(f'{self.turn.title()} player: ')
             if not valid_format(inputstr):
                 print('Invalid input. Please enter your move in the '
@@ -502,8 +504,6 @@ class Board:
         see if any other pieces are able to block/eat it
 
         3. see if it will now result in check, if it does not, it will not checkmate
-
-        if king is only piece, 
         """
         if self.debug:
             print("\nChecking for checkmate")
@@ -581,6 +581,12 @@ class Board:
             self.move(start, end)
         self.winnercheck()
         self.promotioncheck()
+        if self.turn == 'white':
+            if self.checkmate('black'):
+                self.winner = self.turn
+        else:
+            if self.checkmate('white'):
+                self.winner = self.turn
 
     def next_turn(self):
         '''Hand the turn over to the other player.'''
@@ -589,17 +595,8 @@ class Board:
                 self.turn = 'black'
             elif self.turn == 'black':
                 self.turn = 'white'
-        if self.check(self.turn):
-            print(f"{self.turn} King is in check")
         if self.debug:
             print(f'\nChecking before prompting the {self.turn} player')
-        self.get_kingthreat_coords(self.turn)
-        # if self.checkmate(self.turn):
-        #     self.winner = 'white' if self.turn == 'black' else 'black'
-        if self.check(self.turn):
-            print(f"{self.turn} King is in check")
-
-
 
 class BasePiece:
     name = 'piece'

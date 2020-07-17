@@ -378,31 +378,23 @@ class Board:
             if piece.name == "pawn" and (coord[1] == 0 or coord[1] == 7):
                 self.position[coord] = Queen(piece.colour)
 
-    def separate_pieces(self):
+    def get_coords(self, colour, *name):
         """
         Separates the coords list into white and black pieces.
-        and identify the coordinates of the king
-
-        Returns a tuple, with four element:
-        (list of white pieces and coordinates, list of black pieces and coordinate, white king coord, black king coords)
+        Return a list of coords where piece colour and name match.
+        Returns empty list if no such piece found.
+        (Meant to be used in a for loop.)
         """
+        
         pieces_coords_list = list(self.coords())
-        white_pieces_list = []
-        black_pieces_list = []
-        white_king_coord = None
-        black_king_coord = None
+        found_piece_coord = []
+
         for coord in pieces_coords_list:
             piece = self.get_piece(coord)
-            if piece.colour == 'white':
-                if type(piece) == King:
-                    white_king_coord = coord
-                white_pieces_list.append((piece, coord))
-            else:
-                if type(piece) == King:
-                    black_king_coord = coord
-                black_pieces_list.append((piece, coord))
-
-        return (white_pieces_list, black_pieces_list, white_king_coord, black_king_coord)
+            if piece.colour == colour:
+                if piece.name == name:
+                    found_piece_coord.append(coord)
+        return found_piece_coord
 
     def find_attacking_pieces(self, colour):
         """

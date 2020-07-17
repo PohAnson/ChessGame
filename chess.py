@@ -440,6 +440,18 @@ class Board:
         self.turn = intial_turn
         return attacking_pieces
 
+    def get_valid_move_coords(self, piece_coord):
+        '''
+        Returns a list of valid end coordinates for the piece at piece_coord.
+        Returns an empty list if there are no valid moves.
+        '''
+        valid_coord_list = []
+        for i in range(8):
+            for j in range(8):
+                if self.valid_move(piece_coord, (i, j)):
+                    valid_coord_list.append((i, j))
+        return valid_coord_list
+
     def check(self, colour):
         """
         self.check(colour)
@@ -451,10 +463,10 @@ class Board:
         if self.debug:
             print(f"Now checking if the {colour} king is being checked")
 
-        self.get_kingthreat_coords(colour)
+        king_threat_pieces = self.get_kingthreat_coords(colour)
         if self.debug:
-            print("Attacking pieces:", self.attacking_pieces)
-        if len(self.attacking_pieces) == 0:
+            print("Attacking pieces:", king_threat_pieces)
+        if len() == 0:
             return False
         return True
     
@@ -499,23 +511,8 @@ class Board:
         own_king_coord = self.get_coords(colour, 'king')
 
         # Generating possible king moves
-        temp_king_move = set()
-        temp_king_move.add((own_king_coord[0] - 1, own_king_coord[1] - 1))
-        temp_king_move.add((own_king_coord[0] - 1, own_king_coord[1]))
-        temp_king_move.add((own_king_coord[0] - 1, own_king_coord[1] + 1))
-        temp_king_move.add((own_king_coord[0], own_king_coord[1] - 1))
-        temp_king_move.add((own_king_coord[0], own_king_coord[1] + 1))
-        temp_king_move.add((own_king_coord[0] + 1, own_king_coord[1] - 1))
-        temp_king_move.add((own_king_coord[0] + 1, own_king_coord[1]))
-        temp_king_move.add((own_king_coord[0] + 1, own_king_coord[1] + 1))
-        
+        possible_king_move = set(self.get_valid_move_coords(self.get_coords(colour, 'king'))
 
-        # make sure that the end position is in board
-        possible_king_move = set()
-        for coord in temp_king_move:
-            x, y = coord
-            if ((0 <= x <= 7) and (0 <= y <= 7)):
-                possible_king_move.add(coord)
         if self.debug:
             print("Possible king move set:", possible_king_move)
 
@@ -532,19 +529,19 @@ class Board:
         
         # if king is the only piece left, if king cannot move, checkmate
         # If attacking pieces is more than 2, and king cannot move away, checkmate
-        if len(self.attacking_pieces) >= 2 or len(own_pieces_list) == 1:
+        if len(attacking_pieces) >= 2 or len(own_pieces_list) == 1:
             return True
 
         # For only one piece attacking.
         # Check if it can be eaten.
-        for _, coord in own_pieces_list:
-            if self.valid_move(coord, self.attacking_pieces[0][1]) and not self.check(colour):
+        for coord in own_pieces_list:
+            if self.valid_move(coord, self.attack_pieces and not self.check(colour):
                 return False
 
         # Get all attacking piece valid_move square
-        valid_move_set = set()
-        attacking_piece = self.attacking_pieces[0][0]
-        attacking_piece_coord = self.attacking_pieces[0][1]
+        valid_move_set = set(self.get_valid_move_coords())
+        attacking_piece = attacking_piece
+        attacking_piece_coord = attacking_piece
         for coord in [(i,j) for i in range(8) for j in range(8)]:
             if attacking_piece.isvalid(attacking_piece_coord, coord):
                 valid_move_set.add(coord)
@@ -552,7 +549,7 @@ class Board:
         # See if any piece can block it.
         if self.debug:
             print('\nSee if any move can block it')
-        for piece, coord in own_pieces_list:
+        for coord in own_pieces_list:
             for move in valid_move_set:
                 if self.valid_move(coord, move) and not self.temp_check(colour, coord, move):
                     if self.debug:

@@ -518,13 +518,16 @@ class Board:
 
         # See if king can move or capture
         if self.debug:
-            print("\nChecking for possible move")
+            print("\nChecking for king escape moves:")
         for end_coord in possible_king_move:
             if self.debug:
                 print(f"checking for move {own_king_coord} -> {end_coord}")
             if self.valid_move(own_king_coord, end_coord) and not self.temp_check(colour, own_king_coord, end_coord):
                 if self.debug:
-                    print(f"VALID MOVE FOUND: {own_king_coord} -> {end_coord}")
+                    print(f"Valid move found for king to escape: {own_king_coord} -> {end_coord}")
+
+            else:
+                print("No valid move for king to escape")
                 return False
         
         # if king is the only piece left, if king cannot move, checkmate

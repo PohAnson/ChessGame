@@ -26,13 +26,37 @@ class Board:
         else:
             self.debug = False
 
-    def coords(self):
-        '''Return list of piece coordinates.'''
-        return self.position.keys()
+    def coords(self, colour=None):
+        '''
+        Return list of piece coordinates.
+        Allows optional filtering by colour
+        '''
+        if colour == None:
+            return self.position.keys()
+        else:
+            pieces_coords_list = list(self.position.keys())
+            found_pieces_coord = []
 
-    def pieces(self):
-        '''Return list of board pieces.'''
-        return self.position.values()
+            for coord in pieces_coords_list:
+                piece = self.get_piece(coord)
+                if piece.colour == colour:
+                    found_pieces_coord.append(coord)
+            return found_pieces_coord
+
+        
+
+    def pieces(self, colour=None):
+        '''Return list of board pieces.
+        Allows optional filtering by colour'''
+        if colour == None:
+            return self.position.values()
+        else:
+            pieces_list = []
+            for pieces in self.position.values():
+                if pieces.colour == colour:
+                    pieces_list.append(pieces)
+            return pieces_list
+
 
     def get_piece(self, coord):
         '''
@@ -378,9 +402,8 @@ class Board:
             if piece.name == "pawn" and (coord[1] == 0 or coord[1] == 7):
                 self.position[coord] = Queen(piece.colour)
 
-    def get_coords(self, colour, *name):
+    def get_coords(self, colour, name):
         """
-        Separates the coords list into white and black pieces.
         Return a list of coords where piece colour and name match.
         Returns empty list if no such piece found.
         (Meant to be used in a for loop.)
@@ -389,11 +412,10 @@ class Board:
         pieces_coords_list = list(self.coords())
         found_piece_coord = []
 
-        for coord in pieces_coords_list:
+        for coord in self.coords(colour):
             piece = self.get_piece(coord)
-            if piece.colour == colour:
-                if piece.name == name:
-                    found_piece_coord.append(coord)
+            if piece.name = name:
+                found_pieces_coord.append
         return found_piece_coord
 
     def find_attacking_pieces(self, colour):
@@ -402,21 +424,20 @@ class Board:
         """
         if self.debug:
             print("Finding attacking pieces")
-        if colour == 'white':
-            _ , opponent_pieces_list, own_king_coord, _ = self.separate_pieces()
-        else:
-            opponent_pieces_list, _ , _ ,  own_king_coord = self.separate_pieces()
+
 
         intial_turn = self.turn
         self.turn = 'white' if colour == 'black' else 'black'
 
-        self.attacking_pieces = []
-        for (piece, start_coord) in opponent_pieces_list:
+        attacking_pieces = []
+        opponent_coords_list = self.coords(initial_turn) 
+        own_king_coord = self.get_coords(self.turn, 'king')
+        for start_coord in self.coords():
             if self.valid_move(start_coord, own_king_coord):
-                self.attacking_pieces.append((piece, start_coord))
+                attacking_pieces.append((piece, start_coord))
 
         self.turn = intial_turn
-        
+        return attacking_pieces
 
     def check(self, colour):
         """
@@ -473,10 +494,8 @@ class Board:
         """
         if self.debug:
             print("\nChecking for checkmate")
-        if colour == 'white':
-            own_pieces_list , _, own_king_coord, _ = self.separate_pieces()
-        else:
-            _, own_pieces_list, _ , own_king_coord = self.separate_pieces()
+
+        own_king_coord = self.get_coords(colour, 'king')
 
         # Generating possible king moves
         temp_king_move = set()
@@ -504,7 +523,7 @@ class Board:
             print("\nChecking for possible move")
         for end_coord in possible_king_move:
             if self.debug:
-                print(f"checking for move {own_king_coord} -> {end_coord}", end_coord)
+                print(f"checking for move {own_king_coord} -> {end_coord}")
             if self.valid_move(own_king_coord, end_coord) and not self.temp_check(colour, own_king_coord, end_coord):
                 if self.debug:
                     print(f"VALID MOVE FOUND: {own_king_coord} -> {end_coord}")

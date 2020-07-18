@@ -550,6 +550,8 @@ class Board:
             print('\nSee if any move can block it')
         for coord in own_pieces_list:
             for move in attacking_valid_move_set:
+                if self.debug:
+                    print(f"Checking for {coord} -> {move}")
                 if self.valid_move(coord, move) and not self.check(colour, coord, move):
                     if self.debug:
                         print(f"Valid move found: {coord} -> {move}")

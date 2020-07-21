@@ -1,4 +1,5 @@
 import copy
+from Stack import Stack
 
 
 class Board:
@@ -26,13 +27,37 @@ class Board:
         else:
             self.debug = False
 
-    def coords(self):
-        '''Return list of piece coordinates.'''
-        return self.position.keys()
+    def coords(self, colour=None):
+        '''
+        Return list of piece coordinates.
+        Allows optional filtering by colour
+        '''
+        if colour == None:
+            return self.position.keys()
+        else:
+            pieces_coords_list = list(self.position.keys())
+            found_pieces_coord = []
 
-    def pieces(self):
-        '''Return list of board pieces.'''
-        return self.position.values()
+            for coord in pieces_coords_list:
+                piece = self.get_piece(coord)
+                if piece.colour == colour:
+                    found_pieces_coord.append(coord)
+            return found_pieces_coord
+
+        
+
+    def pieces(self, colour=None):
+        '''Return list of board pieces.
+        Allows optional filtering by colour'''
+        if colour == None:
+            return self.position.values()
+        else:
+            pieces_list = []
+            for pieces in self.position.values():
+                if pieces.colour == colour:
+                    pieces_list.append(pieces)
+            return pieces_list
+
 
     def get_piece(self, coord):
         '''
@@ -41,16 +66,20 @@ class Board:
         '''
         return self.position.get(coord, None)
 
-    def add(self, coord, piece):
+    def add(self, coord, piece, track=True):
         '''Add a piece at coord.'''
+        if track:
+            self.movehistory.push(('add', coord, piece))
         self.position[coord] = piece
 
-    def remove(self, coord):
+    def remove(self, coord, track=True):
         '''
         Remove the piece at coord, if any.
         Does nothing if there is no piece at coord.
         '''
         if coord in self.coords():
+            if track:
+                self.movehistory.push(('remove', coord, self.get_piece(coord)))
             del self.position[coord]
 
     def move(self, start, end):
@@ -68,6 +97,7 @@ class Board:
         '''
         Set up the pieces and start the game. Create CSV file movelog_file.
         '''
+        self.movehistory = Stack()
         colour = 'black'
         self.add((0, 7), Rook(colour))
         self.add((1, 7), Knight(colour))
@@ -93,7 +123,6 @@ class Board:
             self.add((x, 1), Pawn(colour))
         self.turn = 'white'
         self.winner = None
-
         f = open('movelog_file', 'w')
         f.close()
 
@@ -175,6 +204,10 @@ class Board:
                 f.write(f'\n{printmove(start, end)}')
 
         while True:
+            if self.debug:
+                print("\nBefore prompting", end='')
+            if self.check(self.turn):
+                print(f"{self.turn} king is in check")
             inputstr = input(f'{self.turn.title()} player: ')
             if not valid_format(inputstr):
                 print('Invalid input. Please enter your move in the '
@@ -183,8 +216,6 @@ class Board:
                 print('Invalid input. Move digits should be 0-7.')
             else:
                 start, end = split_and_convert(inputstr)
-                # if self.temp_check(self.turn, start, end):
-                #     print(f"Invalid move, {self.turn} King is in check")
                 if self.valid_move(start, end):
                     print(printmove(start, end))
                     self.previousmove = (start, end)
@@ -251,7 +282,6 @@ class Board:
           if not pawn_isvalid():
             return False
         elif not self.nojumpcheck(start, end):
-
             return False
         return True
         
@@ -382,90 +412,81 @@ class Board:
             if piece.name == "pawn" and (coord[1] == 0 or coord[1] == 7):
                 self.position[coord] = Queen(piece.colour)
 
-    def separate_pieces(self):
+    def get_coords(self, colour, name):
         """
-        Separates the coords list into white and black pieces.
-        and identify the coordinates of the king
+        Return a list of coords where piece colour and name match.
+        Returns empty list if no such piece found.
+        (Meant to be used in a for loop.)
+        """
+        found_piece_coord = []
 
-        Returns a tuple, with four element:
-        (list of white pieces and coordinates, list of black pieces and coordinate, white king coord, black king coords)
-        """
-        pieces_coords_list = list(self.coords())
-        white_pieces_list = []
-        black_pieces_list = []
-        white_king_coord = None
-        black_king_coord = None
-        for coord in pieces_coords_list:
+        for coord in self.coords(colour):
             piece = self.get_piece(coord)
-            if piece.colour == 'white':
-                if type(piece) == King:
-                    white_king_coord = coord
-                white_pieces_list.append((piece, coord))
-            else:
-                if type(piece) == King:
-                    black_king_coord = coord
-                black_pieces_list.append((piece, coord))
+            if piece.name == name:
+                found_piece_coord.append(coord)
+        return found_piece_coord
 
-        return (white_pieces_list, black_pieces_list, white_king_coord, black_king_coord)
-
-    def find_attacking_pieces(self, colour):
+    def get_kingthreat_coords(self, colour):
         """
-        Find the pieces attacking the king of the colour given
+        Checks for pieces with a valid move for attacking king of the specified colour.
+        Returns a list of the coordinates of these pieces.
         """
         if self.debug:
-            print("Finding attacking pieces")
-        if colour == 'white':
-            _ , opponent_pieces_list, own_king_coord, _ = self.separate_pieces()
-        else:
-            opponent_pieces_list, _ , _ ,  own_king_coord = self.separate_pieces()
-
-        intial_turn = self.turn
-        self.turn = 'white' if colour == 'black' else 'black'
-
-        self.attacking_pieces = []
-        for (piece, start_coord) in opponent_pieces_list:
+            print(f"Finding king threat pieces for {colour}")
+        print("KING THREAT INITIAL TURN COLOUR", colour)
+        initial_turn = self.turn
+        opponent_colour = 'white' if colour == 'black' else 'black'
+        self.turn = opponent_colour
+        # opponent_colour = 
+        attacking_pieces = []
+        opponent_coords_list = self.coords(opponent_colour) 
+        own_king_coord = self.get_coords(colour, 'king')[0]
+        for start_coord in opponent_coords_list:
+            if self.debug:
+                print(f"checking for {self.get_piece(start_coord)} at {start_coord} moving to {own_king_coord}")
             if self.valid_move(start_coord, own_king_coord):
-                self.attacking_pieces.append((piece, start_coord))
+                attacking_pieces.append(start_coord)
+        if self.debug:
+            print(f"King threat pieces are {attacking_pieces}")
+        self.turn = initial_turn
+        return attacking_pieces
 
-        self.turn = intial_turn
-        
+    def get_valid_move_coords(self, piece_coord):
+        '''
+        Returns a list of valid end coordinates for the piece at piece_coord.
+        Returns an empty list if there are no valid moves.
+        '''
+        initial_turn = self.turn
+        self.turn = self.get_piece(piece_coord).colour
+        valid_coord_list = []
+        for i in range(8):
+            for j in range(8):
+                if self.valid_move(piece_coord, (i, j)):
+                    valid_coord_list.append((i, j))
+        self.turn = initial_turn
+        return valid_coord_list
 
-    def check(self, colour):
+    def check(self, colour, start=None, end =None):
         """
-        self.check(colour)
-
         the colour argument tells which king to check if it is checked. Assuming that it is a validated move (except if the move would result in check)
         return boolean
         """
-        # get all the pieces
+        initial_turn = self.turn
+        self.turn = colour
         if self.debug:
-            print(f"Now checking if the {colour} king is being checked")
-
-        self.find_attacking_pieces(colour)
-        if self.debug:
-            print("Attacking pieces:", self.attacking_pieces)
-        if len(self.attacking_pieces) == 0:
+            print(f"\nNow checking if the {colour} king is being checked")
+        if start != None and end != None:
+            self.update(start, end)
+            print("displaying move after a temporary move in check")
+            self.display()
+            king_threat_pieces = self.get_kingthreat_coords(colour)
+            self.undo()
+        else:
+            king_threat_pieces = self.get_kingthreat_coords(colour)
+        self.turn = initial_turn
+        if len(king_threat_pieces) == 0:
             return False
         return True
-    
-    def temp_check(self, colour, start, end):
-        """
-        Create a tempBoard and check if the new move would result in a check.
-        """
-        if self.debug:
-            print("\n\nCreating tempBoard, checking if it will result in check")
-        tempBoard = Board(debug = self.debug)
-        tempBoard.start()
-        tempBoard.position = copy.deepcopy(self.position)
-        if tempBoard.valid_move(start,end):
-            tempBoard.update(start,end)
-        if self.debug:
-            print(f"\nprint updated tempBoard display: \n")
-            tempBoard.display()
-        if tempBoard.check(colour):
-            return True
-        return False
-
 
     def checkmate(self, colour):
         """
@@ -480,75 +501,82 @@ class Board:
         see if any other pieces are able to block/eat it
 
         3. see if it will now result in check, if it does not, it will not checkmate
-
-        if king is only piece, 
         """
         if self.debug:
-            print("\nChecking for checkmate")
-        if colour == 'white':
-            own_pieces_list , _, own_king_coord, _ = self.separate_pieces()
-        else:
-            _, own_pieces_list, _ , own_king_coord = self.separate_pieces()
+            print("\nChecking for checkmate for", colour)
+
+        own_king_coord = self.get_coords(colour, 'king')[0]
+
 
         # Generating possible king moves
-        temp_king_move = set()
-        temp_king_move.add((own_king_coord[0] - 1, own_king_coord[1] - 1))
-        temp_king_move.add((own_king_coord[0] - 1, own_king_coord[1]))
-        temp_king_move.add((own_king_coord[0] - 1, own_king_coord[1] + 1))
-        temp_king_move.add((own_king_coord[0], own_king_coord[1] - 1))
-        temp_king_move.add((own_king_coord[0], own_king_coord[1] + 1))
-        temp_king_move.add((own_king_coord[0] + 1, own_king_coord[1] - 1))
-        temp_king_move.add((own_king_coord[0] + 1, own_king_coord[1]))
-        temp_king_move.add((own_king_coord[0] + 1, own_king_coord[1] + 1))
-        
+        possible_king_move = set(self.get_valid_move_coords(own_king_coord))
 
-        # make sure that the end position is in board
-        possible_king_move = set()
-        for coord in temp_king_move:
-            x, y = coord
-            if ((0 <= x <= 7) and (0 <= y <= 7)):
-                possible_king_move.add(coord)
+        initial_turn = self.turn
+        self.turn = colour
+
         if self.debug:
             print("Possible king move set:", possible_king_move)
 
         # See if king can move or capture
         if self.debug:
-            print("\nChecking for possible move")
+            print("\nChecking for king escape moves:")
         for end_coord in possible_king_move:
+            print("Possible king moves ares", possible_king_move)
             if self.debug:
-                print(f"checking for move {own_king_coord} -> {end_coord}", end_coord)
-            if self.valid_move(own_king_coord, end_coord) and not self.temp_check(colour, own_king_coord, end_coord):
+                print(f"Checking for move {own_king_coord} -> {end_coord}")
+            if not self.check(colour, own_king_coord, end_coord):
                 if self.debug:
-                    print(f"VALID MOVE FOUND: {own_king_coord} -> {end_coord}")
-                return False
-        
+                    print(f"Valid move found for king to escape: {own_king_coord} -> {end_coord}")
+
+                    self.turn = initial_turn
+                    return False
+
+            else:
+                if self.debug:
+                    print("No valid move for king to move to")
+
+        attacking_pieces = self.get_kingthreat_coords(colour)
+        own_pieces_list = self.coords(colour)
+        if len(attacking_pieces) == 0:
+            self.turn = initial_turn
+            return False
+
         # if king is the only piece left, if king cannot move, checkmate
         # If attacking pieces is more than 2, and king cannot move away, checkmate
-        if len(self.attacking_pieces) >= 2 or len(own_pieces_list) == 1:
+        if len(attacking_pieces) >= 2 or len(own_pieces_list) == 1:
+            self.turn = initial_turn
             return True
 
         # For only one piece attacking.
         # Check if it can be eaten.
-        for _, coord in own_pieces_list:
-            if self.valid_move(coord, self.attacking_pieces[0][1]) and not self.check(colour):
-                return False
-
+        for coord in own_pieces_list:
+            if self.valid_move(coord, attacking_pieces[0]):
+                if self.debug:
+                    print(f'\nChecking if attacking piece can be eaten by moving {coord} -> {attacking_pieces[0]}: ' , end='')
+                if self.check(colour, coord, attacking_pieces[0]):
+                    print('invalid move')
+                    self.turn = initial_turn
+                    # self.undo()
+                    
+                else:
+                    self.turn = initial_turn
+                    # self.undo()
+                    return False
+            
         # Get all attacking piece valid_move square
-        valid_move_set = set()
-        attacking_piece = self.attacking_pieces[0][0]
-        attacking_piece_coord = self.attacking_pieces[0][1]
-        for coord in [(i,j) for i in range(8) for j in range(8)]:
-            if attacking_piece.isvalid(attacking_piece_coord, coord):
-                valid_move_set.add(coord)
-
+        attacking_valid_move_set = set(self.get_valid_move_coords(attacking_pieces[0]))
+        if self.debug:
+            print("Attacking pieces possible moves:", attacking_valid_move_set)
         # See if any piece can block it.
         if self.debug:
             print('\nSee if any move can block it')
-        for piece, coord in own_pieces_list:
-            for move in valid_move_set:
-                if self.valid_move(coord, move) and not self.temp_check(colour, coord, move):
+        for coord in own_pieces_list:
+            for move in attacking_valid_move_set:
+                if self.debug:
+                    print(f"Checking for {coord} -> {move}")
+                if self.valid_move(coord, move) and not self.check(colour, coord, move):
                     if self.debug:
-                        print(f"VALID MOVE FOUND: {coord} -> {move}")
+                        print(f"Valid move found: {coord} -> {move}")
                     return False
         return True
 
@@ -569,10 +597,36 @@ class Board:
         if self.castling(start, end):
             self.castlingmove(start, end)
         else:
+            self.movehistory.push('update')
             self.remove(end)
             self.move(start, end)
         self.winnercheck()
         self.promotioncheck()
+        if self.turn == 'white':
+            if self.check('black'):
+                if self.checkmate('black'):
+                    self.winner = self.turn
+        else:
+            if self.check('white'):
+                if self.checkmate('white'):
+                    self.winner = self.turn
+    
+    def undo(self):
+        """Reverses the Board to before update and reprompt"""
+        if self.debug:
+            print("\nBefore undo, move history:\n", self.movehistory)
+        while self.movehistory[-1] != 'update':
+            print(self.movehistory[-1])
+            if self.movehistory[-1][0] == 'remove':
+                self.add(self.movehistory[-1][1], self.movehistory[-1][2], track=False)
+            elif self.movehistory[-1][0] == 'add':
+                self.remove(self.movehistory[-1][1], track=False)
+            self.movehistory.pop()
+            
+        self.movehistory.pop()
+        self.display()
+        # start, end = self.prompt()
+        # self.update(start, end)
 
     def next_turn(self):
         '''Hand the turn over to the other player.'''
@@ -581,17 +635,6 @@ class Board:
                 self.turn = 'black'
             elif self.turn == 'black':
                 self.turn = 'white'
-        if self.check(self.turn):
-            print(f"{self.turn} King is in check")
-        if self.debug:
-            print(f'\nChecking before prompting the {self.turn} player')
-        self.find_attacking_pieces(self.turn)
-        # if self.checkmate(self.turn):
-        #     self.winner = 'white' if self.turn == 'black' else 'black'
-        if self.check(self.turn):
-            print(f"{self.turn} King is in check")
-
-
 
 class BasePiece:
     name = 'piece'

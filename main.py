@@ -8,6 +8,7 @@ if game.debug:
         game.display()
         print('== PROMPT ==')
         start, end = game.prompt()
+        game.prompt()
         print('== UPDATE ==')
         game.update(start, end)
         print('== NEXT TURN ==')
@@ -17,6 +18,7 @@ else:
     while game.winner is None:
         game.display()
         start, end = game.prompt()
+        game.prompt()
         game.update(start, end)
         game.next_turn()
 print(f'Game over. {game.winner} player wins!')

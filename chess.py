@@ -189,6 +189,7 @@ class Board:
                     print(printmove(start, end))
                     self.previousmove = (start, end)
                     print(self.moveclassifier(start, end))
+                    movelog(start,end)
                     return start, end
                 else:
                     print(f'Invalid move for {self.get_piece(start)}.')
@@ -403,7 +404,7 @@ class Board:
 
         return (white_pieces_list, black_pieces_list, white_king_coord, black_king_coord)
 
-    def find_attacking_pieces(self, colour):
+    def get_kingthreat_coords(self, colour):
         """
         Find the pieces attacking the king of the colour given
         """
@@ -412,7 +413,7 @@ class Board:
         if colour == 'white':
             _ , opponent_pieces_list, own_king_coord, _ = self.separate_pieces()
         else:
-            opponent_pieces_list, _ , _ ,  own_king_coord = self.separate_pieces()
+            opponent_pieces_list, _ , __ ,  own_king_coord = self.separate_pieces()
 
         intial_turn = self.turn
         self.turn = 'white' if colour == 'black' else 'black'
@@ -423,6 +424,7 @@ class Board:
                 self.attacking_pieces.append((piece, start_coord))
 
         self.turn = intial_turn
+        return self.attacking_pieces
         
 
     def check(self, colour):
@@ -436,7 +438,7 @@ class Board:
         if self.debug:
             print(f"Now checking if the {colour} king is being checked")
 
-        self.find_attacking_pieces(colour)
+        self.get_kingthreat_coords(colour)
         if self.debug:
             print("Attacking pieces:", self.attacking_pieces)
         if len(self.attacking_pieces) == 0:
@@ -580,10 +582,10 @@ class Board:
             print(f"{self.turn} King is in check")
         if self.debug:
             print(f'\nChecking before prompting the {self.turn} player')
-        self.find_attacking_pieces(self.turn)
-        if self.checkmate(self.turn):
-            self.winner = 'white' if self.turn == 'black' else 'black'
-        elif self.check(self.turn):
+        self.get_kingthreat_coords(self.turn)
+        # if self.checkmate(self.turn):
+        #     self.winner = 'white' if self.turn == 'black' else 'black'
+        if self.check(self.turn):
                 print(f"{self.turn} King is in check")
 
 

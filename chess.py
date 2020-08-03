@@ -17,6 +17,7 @@ class Board:
     01  11  21  31  41  51  61  71
     00  10  20  30  40  50  60  70
     '''
+
     def __init__(self, **kwargs):
         self.position = {}
         if 'debug' in kwargs.keys():
@@ -26,6 +27,8 @@ class Board:
                 self.debug = False
         else:
             self.debug = False
+        self.inputf = kwargs.get("inputf", input)
+        self.printf = kwargs.get("printf", print)
 
     def coords(self, colour=None):
         '''
@@ -44,8 +47,6 @@ class Board:
                     found_pieces_coord.append(coord)
             return found_pieces_coord
 
-        
-
     def pieces(self, colour=None):
         '''Return list of board pieces.
         Allows optional filtering by colour'''
@@ -57,7 +58,6 @@ class Board:
                 if pieces.colour == colour:
                     pieces_list.append(pieces)
             return pieces_list
-
 
     def get_piece(self, coord):
         '''
@@ -134,26 +134,30 @@ class Board:
         # helper function to generate symbols for piece
         # Row 7 is at the top, so print in reverse order
         # Row 8 is for column labels, Column -1 is for Row labels
+        output = ""
         for row in range(8, -1, -1):
             for col in range(-1, 8):
                 coord = (col, row)  # tuple
                 if coord in self.coords():
                     piece = self.get_piece(coord)
-                    print(f'{piece.symbol()}', end='')
+                    output = output + f'{piece.symbol()}'
                 elif row == 8:
                     if col == -1:
-                        print(' ', end='')
+                        output = output + ' '
                     else:
-                        print(f'{col}', end='')
+                        output = output + f'{col}'
                 elif col == -1:
-                    print(f'{row}', end='')
+                    output = output + f'{row}'
                 else:
                     piece = None
-                    print(' ', end='')
-                if col == 7:     # Put line break at the end
-                    print('')
-                else:            # Print a space between pieces
-                    print(' ', end='')
+                    output = output + ' '
+                if col == 7:  # Put line break at the end
+                    output = output + '\n'
+                else:  # self.printf a space between pieces
+                    output = output + ' '
+        
+      
+        return output
 
     def prompt(self):
         '''
@@ -162,6 +166,7 @@ class Board:
         then another 2 ints
         e.g. 07 27
         '''
+
         def valid_format(inputstr):
             '''
             Ensure input is 5 characters: 2 numerals,
@@ -205,25 +210,25 @@ class Board:
 
         while True:
             if self.debug:
-                print("\nBefore prompting", end='')
+                self.printf("\nBefore prompting", end='')
             if self.check(self.turn):
-                print(f"{self.turn} king is in check")
-            inputstr = input(f'{self.turn.title()} player: ')
+                self.printf(f"{self.turn} king is in check")
+            inputstr = self.inputf(f'{self.turn.title()} player: ')
             if not valid_format(inputstr):
-                print('Invalid input. Please enter your move in the '
-                      'following format: __ __, _ represents a digit.')
+                self.printf('Invalid input. Please enter your move in the '
+                            'following format: __ __, _ represents a digit.')
             elif not valid_num(inputstr):
-                print('Invalid input. Move digits should be 0-7.')
+                self.printf('Invalid input. Move digits should be 0-7.')
             else:
                 start, end = split_and_convert(inputstr)
                 if self.valid_move(start, end):
-                    print(printmove(start, end))
+                    # self.printf(printmove(start, end))
                     self.previousmove = (start, end)
-                    print(self.moveclassifier(start, end))
+                    self.printf(f"{printmove(start, end)} {self.moveclassifier(start, end)}")
                     movelog(start, end)
                     return start, end
                 else:
-                    print(f'Invalid move for {self.get_piece(start)}.')
+                    self.printf(f'Invalid move for {self.get_piece(start)}.')
 
     def valid_move(self, start, end):
         '''
@@ -235,41 +240,42 @@ class Board:
         Returns False otherwise
         5. Special moves
         '''
-        
+
         def pawn_isvalid():
-          """
+            """
           Extra validation for pawn capturing and en passant moves
           Returns True if move is valid, else returns False
           """
-          x, y, dist = start_piece.vector(start, end)
-          if x == 1 or x == -1:
-              is_capture = True
-          else:
-              is_capture = False
-          if is_capture and end_piece is None:
-            xcord = end[0]
-            ycord = start[1]
-            sidepiece = self.get_piece((xcord, ycord))
-            if sidepiece.name == 'pawn':
-              if not sidepiece.doublemoveprevturn:
-                return False
-              elif (xcord, ycord) == self.previousmove[1]:
-                self.move((xcord, ycord), end)
-                return True
-              else:
+            x, y, dist = start_piece.vector(start, end)
+            if x == 1 or x == -1:
+                is_capture = True
+            else:
+                is_capture = False
+            if is_capture and end_piece is None:
+                xcord = end[0]
+                ycord = start[1]
+                sidepiece = self.get_piece((xcord, ycord))
+                if sidepiece is not None:
+                    if sidepiece.name == 'pawn':
+                        if not sidepiece.doublemoveprevturn:
+                            return False
+                        elif (xcord, ycord) == self.previousmove[1]:
+                            self.move((xcord, ycord), end)
+                            return True
+                        else:
+                            return False
+                    else:
+                        return False
+            elif not is_capture and end_piece is not None:
                 return False
             else:
-              return False
-          elif not is_capture and end_piece is not None:
-            return False
-          else:
-            return True
+                return True
 
         start_piece = self.get_piece(start)
         end_piece = self.get_piece(end)
         if self.castling(start, end):
             if self.debug:
-                print(f'Castling from {start} -> {end} is a valid move')
+                self.printf(f'Castling from {start} -> {end} is a valid move')
             return True
         elif start_piece is None or start_piece.colour != self.turn:
             return False
@@ -279,12 +285,12 @@ class Board:
             return False
 
         elif start_piece.name == 'pawn':
-          if not pawn_isvalid():
-            return False
+            if not pawn_isvalid():
+                return False
         elif not self.nojumpcheck(start, end):
             return False
         return True
-        
+
     def nojumpcheck(self, start, end):
         '''
         self.nojumpcheck(start, end)
@@ -295,34 +301,34 @@ class Board:
         else True
         yuheng
         '''
-        x = end[0]- start[0]
-        y = end[1]- start[1]
+        x = end[0] - start[0]
+        y = end[1] - start[1]
         position_checking = start
         nojump = True
         if abs(x) == 1 or abs(y) == 1:
             nojump = True
         elif x == 0:
             # moving vertically
-            for i in range(0, abs(y)-1):
+            for i in range(0, abs(y) - 1):
                 position_checking = list(position_checking)
-                position_checking[1] += y/abs(y)
+                position_checking[1] += y / abs(y)
                 position_checking = tuple(position_checking)
                 if self.get_piece(position_checking) != None:
                     nojump = False
         elif y == 0:
             # moving horizontally
-            for i in range(0, abs(x)-1):
+            for i in range(0, abs(x) - 1):
                 position_checking = list(position_checking)
-                position_checking[0] += x/abs(x)
+                position_checking[0] += x / abs(x)
                 position_checking = tuple(position_checking)
                 if self.get_piece(position_checking) != None:
                     nojump = False
         else:
             # moving diagonally
-            for i in range(0, abs(x)-1):
+            for i in range(0, abs(x) - 1):
                 position_checking = list(position_checking)
-                position_checking[0] += x/abs(x)
-                position_checking[1] += y/abs(y)
+                position_checking[0] += x / abs(x)
+                position_checking[1] += y / abs(y)
                 position_checking = tuple(position_checking)
                 if self.get_piece(position_checking) != None:
                     nojump = False
@@ -349,7 +355,8 @@ class Board:
             return False
         elif start_piece.moved or end_piece.moved:
             return False
-        elif not ((start_piece.name == 'king' and end_piece.name == 'rook') or (start_piece.name == 'rook' and end_piece.name == 'king')):
+        elif not ((start_piece.name == 'king' and end_piece.name == 'rook') or
+                  (start_piece.name == 'rook' and end_piece.name == 'king')):
             return False
         elif not self.nojumpcheck(start, end):
             return False
@@ -367,7 +374,7 @@ class Board:
                 position_checking = king_pos
                 for i in range(0, 2):
                     position_checking = list(position_checking)
-                    position_checking[0] += x/abs(x)
+                    position_checking[0] += x / abs(x)
                     position_checking = tuple(position_checking)
                     self.add(position_checking, King(self.turn))
                     if self.check(self.turn) == True:
@@ -389,11 +396,11 @@ class Board:
             rook_pos = start
         x = rook_pos[0] - king_pos[0]
         king_pos_end = list(king_pos)
-        king_pos_end[0] += 2*(x/abs(x))
+        king_pos_end[0] += 2 * (x / abs(x))
         king_pos_end = tuple(king_pos_end)
         self.move(king_pos, king_pos_end)
         rook_pos_end = list(rook_pos)
-        rook_pos_end[0] = king_pos_end[0] - x/abs(x)
+        rook_pos_end[0] = king_pos_end[0] - x / abs(x)
         rook_pos_end = tuple(rook_pos_end)
         self.move(rook_pos, rook_pos_end)
 
@@ -402,13 +409,13 @@ class Board:
         no_of_kings = 0
         for pieces in list(self.pieces()):
             if pieces.name == 'king':
-              no_of_kings += 1
+                no_of_kings += 1
         if no_of_kings != 2:
             self.winner = self.turn
-    
+
     def promotioncheck(self):
         '''check for pawn promotion'''
-        for coord , piece in self.position.items():
+        for coord, piece in self.position.items():
             if piece.name == "pawn" and (coord[1] == 0 or coord[1] == 7):
                 self.position[coord] = Queen(piece.colour)
 
@@ -432,22 +439,24 @@ class Board:
         Returns a list of the coordinates of these pieces.
         """
         if self.debug:
-            print(f"Finding king threat pieces for {colour}")
-        print("KING THREAT INITIAL TURN COLOUR", colour)
+            self.printf(f"Finding king threat pieces for {colour}")
+            self.printf("KING THREAT INITIAL TURN COLOUR", colour)
         initial_turn = self.turn
         opponent_colour = 'white' if colour == 'black' else 'black'
         self.turn = opponent_colour
-        # opponent_colour = 
+        # opponent_colour =
         attacking_pieces = []
-        opponent_coords_list = self.coords(opponent_colour) 
+        opponent_coords_list = self.coords(opponent_colour)
         own_king_coord = self.get_coords(colour, 'king')[0]
         for start_coord in opponent_coords_list:
             if self.debug:
-                print(f"checking for {self.get_piece(start_coord)} at {start_coord} moving to {own_king_coord}")
+                self.printf(
+                    f"checking for {self.get_piece(start_coord)} at {start_coord} moving to {own_king_coord}"
+                )
             if self.valid_move(start_coord, own_king_coord):
                 attacking_pieces.append(start_coord)
         if self.debug:
-            print(f"King threat pieces are {attacking_pieces}")
+            self.printf(f"King threat pieces are {attacking_pieces}")
         self.turn = initial_turn
         return attacking_pieces
 
@@ -466,7 +475,7 @@ class Board:
         self.turn = initial_turn
         return valid_coord_list
 
-    def check(self, colour, start=None, end =None):
+    def check(self, colour, start=None, end=None):
         """
         the colour argument tells which king to check if it is checked. Assuming that it is a validated move (except if the move would result in check)
         return boolean
@@ -474,11 +483,13 @@ class Board:
         initial_turn = self.turn
         self.turn = colour
         if self.debug:
-            print(f"\nNow checking if the {colour} king is being checked")
+            self.printf(
+                f"\nNow checking if the {colour} king is being checked")
         if start != None and end != None:
             self.update(start, end)
-            print("displaying move after a temporary move in check")
-            self.display()
+            if self.debug:
+                self.printf("displaying move after a temporary move in check")
+                self.display()
             king_threat_pieces = self.get_kingthreat_coords(colour)
             self.undo()
         else:
@@ -503,10 +514,9 @@ class Board:
         3. see if it will now result in check, if it does not, it will not checkmate
         """
         if self.debug:
-            print("\nChecking for checkmate for", colour)
+            self.printf("\nChecking for checkmate for", colour)
 
         own_king_coord = self.get_coords(colour, 'king')[0]
-
 
         # Generating possible king moves
         possible_king_move = set(self.get_valid_move_coords(own_king_coord))
@@ -515,25 +525,29 @@ class Board:
         self.turn = colour
 
         if self.debug:
-            print("Possible king move set:", possible_king_move)
+            self.printf("Possible king move set:", possible_king_move)
 
         # See if king can move or capture
         if self.debug:
-            print("\nChecking for king escape moves:")
+            self.printf("\nChecking for king escape moves:")
         for end_coord in possible_king_move:
-            print("Possible king moves ares", possible_king_move)
             if self.debug:
-                print(f"Checking for move {own_king_coord} -> {end_coord}")
+                self.printf("Possible king moves are", possible_king_move)
+            if self.debug:
+                self.printf(
+                    f"Checking for move {own_king_coord} -> {end_coord}")
             if not self.check(colour, own_king_coord, end_coord):
                 if self.debug:
-                    print(f"Valid move found for king to escape: {own_king_coord} -> {end_coord}")
+                    self.printf(
+                        f"Valid move found for king to escape: {own_king_coord} -> {end_coord}"
+                    )
 
                     self.turn = initial_turn
                     return False
 
             else:
                 if self.debug:
-                    print("No valid move for king to move to")
+                    self.printf("No valid move for king to move to")
 
         attacking_pieces = self.get_kingthreat_coords(colour)
         own_pieces_list = self.coords(colour)
@@ -552,31 +566,36 @@ class Board:
         for coord in own_pieces_list:
             if self.valid_move(coord, attacking_pieces[0]):
                 if self.debug:
-                    print(f'\nChecking if attacking piece can be eaten by moving {coord} -> {attacking_pieces[0]}: ' , end='')
+                    self.printf(
+                        f'\nChecking if attacking piece can be eaten by moving {coord} -> {attacking_pieces[0]}: ',
+                        end='')
                 if self.check(colour, coord, attacking_pieces[0]):
-                    print('invalid move')
+                    self.printf('invalid move')
                     self.turn = initial_turn
                     # self.undo()
-                    
+
                 else:
                     self.turn = initial_turn
                     # self.undo()
                     return False
-            
+
         # Get all attacking piece valid_move square
-        attacking_valid_move_set = set(self.get_valid_move_coords(attacking_pieces[0]))
+        attacking_valid_move_set = set(
+            self.get_valid_move_coords(attacking_pieces[0]))
         if self.debug:
-            print("Attacking pieces possible moves:", attacking_valid_move_set)
+            self.printf("Attacking pieces possible moves:",
+                        attacking_valid_move_set)
         # See if any piece can block it.
         if self.debug:
-            print('\nSee if any move can block it')
+            self.printf('\nSee if any move can block it')
         for coord in own_pieces_list:
             for move in attacking_valid_move_set:
                 if self.debug:
-                    print(f"Checking for {coord} -> {move}")
-                if self.valid_move(coord, move) and not self.check(colour, coord, move):
+                    self.printf(f"Checking for {coord} -> {move}")
+                if self.valid_move(
+                        coord, move) and not self.check(colour, coord, move):
                     if self.debug:
-                        print(f"Valid move found: {coord} -> {move}")
+                        self.printf(f"Valid move found: {coord} -> {move}")
                     return False
         return True
 
@@ -610,21 +629,26 @@ class Board:
             if self.check('white'):
                 if self.checkmate('white'):
                     self.winner = self.turn
-    
+
     def undo(self):
         """Reverses the Board to before update and reprompt"""
         if self.debug:
-            print("\nBefore undo, move history:\n", self.movehistory)
+            self.printf("\nBefore undo, move history:\n", self.movehistory)
         while self.movehistory[-1] != 'update':
-            print(self.movehistory[-1])
+            if self.debug:
+                self.printf(self.movehistory[-1])
             if self.movehistory[-1][0] == 'remove':
-                self.add(self.movehistory[-1][1], self.movehistory[-1][2], track=False)
+                self.add(
+                    self.movehistory[-1][1],
+                    self.movehistory[-1][2],
+                    track=False)
             elif self.movehistory[-1][0] == 'add':
                 self.remove(self.movehistory[-1][1], track=False)
             self.movehistory.pop()
-            
+
         self.movehistory.pop()
-        self.display()
+        if self.debug:
+            self.display()
         # start, end = self.prompt()
         # self.update(start, end)
 
@@ -636,9 +660,11 @@ class Board:
             elif self.turn == 'black':
                 self.turn = 'white'
 
+
 class BasePiece:
     name = 'piece'
-    def __init__(self, colour, moved = False):
+
+    def __init__(self, colour, moved=False):
         if type(colour) != str:
             raise TypeError('colour argument must be str')
         elif colour.lower() not in {'white', 'black'}:
@@ -655,7 +681,6 @@ class BasePiece:
 
     def symbol(self):
         return f'{self.sym[self.colour]}'
-    
 
     @staticmethod
     def vector(start, end):
@@ -674,12 +699,11 @@ class BasePiece:
         dist = abs(x) + abs(y)
         return x, y, dist
 
-    
-
 
 class King(BasePiece):
     name = 'king'
     sym = {'white': '♔', 'black': '♚'}
+
     def __repr__(self):
         return f"King('{self.name}')"
 
@@ -691,10 +715,11 @@ class King(BasePiece):
         x, y, dist = self.vector(start, end)
         return (dist == 1) or (abs(x) == abs(y) == 1)
 
-    
+
 class Queen(BasePiece):
     name = 'queen'
     sym = {'white': '♕', 'black': '♛'}
+
     def __repr__(self):
         return f"Queen('{self.name}')"
 
@@ -712,6 +737,7 @@ class Queen(BasePiece):
 class Bishop(BasePiece):
     name = 'bishop'
     sym = {'white': '♗', 'black': '♝'}
+
     def __repr__(self):
         return f"Bishop('{self.name}')"
 
@@ -724,6 +750,7 @@ class Bishop(BasePiece):
 class Knight(BasePiece):
     name = 'knight'
     sym = {'white': '♘', 'black': '♞'}
+
     def __repr__(self):
         return f"Knight('{self.name}')"
 
@@ -739,6 +766,7 @@ class Knight(BasePiece):
 class Rook(BasePiece):
     name = 'rook'
     sym = {'white': '♖', 'black': '♜'}
+
     def __repr__(self):
         return f"Rook('{self.name}')"
 
@@ -749,16 +777,16 @@ class Rook(BasePiece):
         '''
         x, y, dist = self.vector(start, end)
         return (abs(x) == 0 and abs(y) != 0) \
-            or (abs(y) == 0 and abs(x) != 0) 
+            or (abs(y) == 0 and abs(x) != 0)
 
 
 class Pawn(BasePiece):
     name = 'pawn'
     sym = {'white': '♙', 'black': '♟︎'}
     doublemoveprevturn = False
+
     def __repr__(self):
         return f"Pawn('{self.name}')"
-    
 
     def isvalid(self, start: tuple, end: tuple):
         '''
@@ -769,29 +797,30 @@ class Pawn(BasePiece):
         '''
         x, y, dist = self.vector(start, end)
         if x == -1 or x == 1 or x == 0:
-          if self.colour == 'black':
-            self.doublemoveprevturn = False
-            if start[1] ==  6:
-              if y == -2:
-                self.doublemoveprevturn = True
-              return (y == -1 or y == -2)
-            return (y == -1)
-          elif self.colour == 'white':
-            self.doublemoveprevturn = False
-            if start[1] ==  1:
-                if y == 2:
-                  self.doublemoveprevturn = True
-                return (y == 1 or y == 2)
-            return (y == 1)
-          else:
-            return False
+            if self.colour == 'black':
+                self.doublemoveprevturn = False
+                if start[1] == 6:
+                    if y == -2:
+                        self.doublemoveprevturn = True
+                    return (y == -1 or y == -2)
+                return (y == -1)
+            elif self.colour == 'white':
+                self.doublemoveprevturn = False
+                if start[1] == 1:
+                    if y == 2:
+                        self.doublemoveprevturn = True
+                    return (y == 1 or y == 2)
+                return (y == 1)
+            else:
+                return False
         else:
             return False
 
 
-
 class MoveError(Exception):
-  """
+    """
   Raised when an invalid move is made.
   """
+
+
 pass

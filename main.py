@@ -34,5 +34,5 @@ else:
             ui.set_msg(f"Invalid Move: {start} -> {end}")
         game.update(start, end)
         game.next_turn()
-game.display()
+ui.set_board(game.display())
 ui.set_msg(f'Game over. {game.winner} player wins!')

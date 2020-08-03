@@ -624,11 +624,11 @@ class Board:
         if self.turn == 'white':
             if self.check('black'):
                 if self.checkmate('black'):
-                    self.winner = self.turn
+                    self.winner = "white"
         else:
             if self.check('white'):
                 if self.checkmate('white'):
-                    self.winner = self.turn
+                    self.winner = "black"
 
     def undo(self):
         """Reverses the Board to before update and reprompt"""

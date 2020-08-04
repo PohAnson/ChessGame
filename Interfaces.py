@@ -32,6 +32,8 @@ class ConsoleInterface:
 class TextInterface:
   def __init__(self):
     self.stdscr = curses.initscr()
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
     y, x = 0, 0
     self.boardwin = curses.newwin(11, 40, y , x)
     self.drawborder(self.boardwin, (0,2), "Board")
@@ -55,19 +57,19 @@ class TextInterface:
     lines = inputstr.split("\n")
     for i in range(len(lines)-1):
       self.boardwin.addstr(i + 1, 10, lines[i])
-    # self.boardwin.clrtoeol()
     self.boardwin.refresh()
 
-  def set_msg(self, inputstr, **kwargs):
+  def set_msg(self, inputstr, status=None):
     self.drawborder(self.msgwin, (0,2), "Messages")
-    self.msgwin.addstr(1, 1, inputstr)
-    # self.msgwin.clrtoeol()
+    if status in ["error", "check", "checkmate"]:
+      self.msgwin.addstr(1, 1, inputstr, curses.color_pair(1))
+    else: 
+      self.msgwin.addstr(1, 1, inputstr)
     self.msgwin.refresh()
 
   def get_player_input(self, msg):
     self.drawborder(self.inputwin, (0,2), "Player")
     self.inputwin.addstr(1, 1,msg)
-    # self.inputwin.clrtoeol()
     value = self.inputwin.getstr()
     value = value.decode("utf-8")
     return value

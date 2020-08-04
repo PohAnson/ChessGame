@@ -31,8 +31,8 @@ else:
           if game.valid_move(start, end):
             break
           else:
-            ui.set_msg(f"Invalid Move: {start} -> {end}")
+            ui.set_msg(f"Invalid Move: {start} -> {end}", status="error")
         game.update(start, end)
         game.next_turn()
 ui.set_board(game.display())
-ui.set_msg(f'Game over. {game.winner} player wins!')
+ui.set_msg(f'Game over. {game.winner} player wins!', status="checkmate")

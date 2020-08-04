@@ -79,3 +79,9 @@ def auto_mover(move_list, game):
     game.display()
     print(f'Game over. {game.winner} player wins!')
 auto_mover(move_list1, game)
+
+# fool's mate
+# 51 52
+# 46 45
+# 61 63
+# 37 73

@@ -1,4 +1,3 @@
-
 import curses
 class ConsoleInterface:
     def __init__(self):
@@ -35,32 +34,40 @@ class TextInterface:
     self.stdscr = curses.initscr()
     y, x = 0, 0
     self.boardwin = curses.newwin(11, 40, y , x)
-    self.boardwin.border()
-    self.boardwin.addstr(0, 2, "Board")
+    self.drawborder(self.boardwin, (0,2), "Board")
     y += 11
     self.msgwin = curses.newwin(5, 40, y, x)
-    self.msgwin.border()
-    self.msgwin.addstr(0, 2, "Messages")
+    self.drawborder(self.msgwin, (0,2), "Messages")
     y += 5
     self.inputwin = curses.newwin(3, 40, y, x)
-    self.inputwin.border()
-    self.inputwin.addstr(0, 2, "Player")
+    self.drawborder(self.inputwin, (0,2), "Player")
+  
+  @staticmethod
+  def drawborder(window, position:tuple, label:str):
+    window.clear()
+    window.border()
+    y, x = position
+    window.addstr(y, x, label)
+
   
   def set_board(self, inputstr):
+    self.drawborder(self.boardwin, (0,2), "Board")
     lines = inputstr.split("\n")
     for i in range(len(lines)-1):
       self.boardwin.addstr(i + 1, 10, lines[i])
-    self.boardwin.clrtoeol()
+    # self.boardwin.clrtoeol()
     self.boardwin.refresh()
 
   def set_msg(self, inputstr, **kwargs):
+    self.drawborder(self.msgwin, (0,2), "Messages")
     self.msgwin.addstr(1, 1, inputstr)
-    self.msgwin.clrtoeol()
+    # self.msgwin.clrtoeol()
     self.msgwin.refresh()
 
   def get_player_input(self, msg):
+    self.drawborder(self.inputwin, (0,2), "Player")
     self.inputwin.addstr(1, 1,msg)
-    self.inputwin.clrtoeol()
+    # self.inputwin.clrtoeol()
     value = self.inputwin.getstr()
     value = value.decode("utf-8")
     return value

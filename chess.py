@@ -3,6 +3,7 @@ from Stack import Stack
 
 
 class Board:
+    # Disable set inputf and printf to normal python input and print function
     '''
     The game board is represented as an 8×8 grid,
     with each position on the grid described as
@@ -215,7 +216,7 @@ class Board:
                 self.printf(f"{self.turn} king is in check")
             inputstr = self.inputf(f'{self.turn.title()} player: ')
             if not valid_format(inputstr):
-                self.printf('Invalid input. Please enter your move in the '
+                self.printf('Invalid input. Enter your move in the\n'
                             'following format: __ __, _ represents a digit.')
             elif not valid_num(inputstr):
                 self.printf('Invalid input. Move digits should be 0-7.')
@@ -440,7 +441,7 @@ class Board:
         """
         if self.debug:
             self.printf(f"Finding king threat pieces for {colour}")
-            self.printf("KING THREAT INITIAL TURN COLOUR", colour)
+            self.printf(f"KING THREAT INITIAL TURN COLOUR {colour}")
         initial_turn = self.turn
         opponent_colour = 'white' if colour == 'black' else 'black'
         self.turn = opponent_colour
@@ -633,7 +634,7 @@ class Board:
     def undo(self):
         """Reverses the Board to before update and reprompt"""
         if self.debug:
-            self.printf("\nBefore undo, move history:\n", self.movehistory)
+            self.printf(f"\nBefore undo, move history:\n {self.movehistory}")
         while self.movehistory[-1] != 'update':
             if self.debug:
                 self.printf(self.movehistory[-1])
